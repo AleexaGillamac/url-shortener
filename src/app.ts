@@ -39,7 +39,7 @@ export function buildApp() {
 
         return reply.status(201).send({
             code,
-            shortURL: `http://localhost:3000/${code}`,
+            shortUrl: `http://localhost:3000/${code}`,
         });
     });
 
