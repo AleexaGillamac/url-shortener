@@ -49,4 +49,34 @@ describe('Fastify Application API', () => {
         expect(response.statusCode).toBe(400)
     })
     
+    test('GET /:code redirects to the original url', async () => {
+        const originalUrl = 'https://github.com'
+        
+        const responsePost = await app.inject({
+            method: 'POST',
+            url: '/links',
+            payload: {
+                url: originalUrl
+             },
+        })
+        
+        const body = responsePost.json()
+
+        const code = body.code
+
+        const responseGet = await app.inject({
+            method: 'GET',
+            url: `/${code}`
+        })
+
+        console.log(responsePost.statusCode, body, code)
+        console.log(responseGet.payload)
+
+        expect(responseGet.statusCode).toBe(302)
+        expect(responseGet.headers.location).toEqual(originalUrl)
+
+    })
+
+    
+
 })

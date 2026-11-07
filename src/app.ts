@@ -43,7 +43,7 @@ export function buildApp() {
         });
     });
 
-    app.get<{ Params: { code: string } }>('/.code', async (request, reply) => {
+    app.get<{ Params: { code: string } }>('/:code', async (request, reply) => {
         const url = links.get(request.params.code);
 
         if (!url) {
