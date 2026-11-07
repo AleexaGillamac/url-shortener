@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { buildApp } from "./app.js";
+import { error } from "node:console";
 
 describe('Fastify Application API', () => {
     let app: ReturnType<typeof buildApp>
@@ -69,14 +70,50 @@ describe('Fastify Application API', () => {
             url: `/${code}`
         })
 
-        console.log(responsePost.statusCode, body, code)
-        console.log(responseGet.payload)
-
         expect(responseGet.statusCode).toBe(302)
         expect(responseGet.headers.location).toEqual(originalUrl)
 
     })
 
-    
+    test('GET /:code with an unknown code returns 404', async () => {
+        const response = await app.inject({
+            method: 'GET',
+            url: '/doesnotexist'
+        })
 
+        const body = response.json()
+
+        expect(response.statusCode).toBe(404)
+        expect(body).toEqual({ error: 'Link not found'})
+    })
+
+    test('GET /links/:code/stats counts clicks', async () => {
+        const originalUrl = 'https://github.com'
+        const response = await app.inject({
+            method: 'POST',
+            url: '/links',
+            payload: { url: originalUrl}
+        })
+
+        expect(response.statusCode).toBe(201)
+
+        const { code } = response.json()
+
+        for (let i = 1; i <= 3; i++)
+            await app.inject({
+                method: 'GET',
+                url: `/${code}`,
+            })
+        
+        const responseStat = await app.inject({
+            method: 'GET',
+            url: `/links/${code}/stats`
+        })
+
+        const bodyStat = responseStat.json()
+        
+        expect(responseStat.statusCode).toBe(200)
+        expect(bodyStat.totalClicks).toBe(3)
+        expect(bodyStat.clicks).toHaveLength(3)
+    })
 })
