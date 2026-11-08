@@ -1,10 +1,12 @@
 import { fastify } from 'fastify';
-import { error } from 'node:console';
 import { randomBytes } from 'node:crypto';
 import z from 'zod';
 
 const createLinkSchema = z.object({
-    url: z.url()
+    url: z.url({
+        protocol: /^https?$/,
+    }),
+
 })
  
 export function buildApp() {
@@ -44,7 +46,7 @@ export function buildApp() {
 
         return reply.status(201).send({
             code,
-            shortUrl: `http://localhost:3000/${code}`,
+            shortUrl: `https://localhost:3000/${code}`,
         });
     });
 

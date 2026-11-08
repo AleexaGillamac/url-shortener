@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { buildApp } from "./app.js";
+import { url } from './../node_modules/zod/v4/mini/schemas';
 
 
 
@@ -107,7 +108,7 @@ describe('Fastify Application API', () => {
         expect(bodyStat.clicks).toHaveLength(3)
     })
 
-   test('POST /links with no url returns 400', async () => {
+    test('POST /links with no url returns 400', async () => {
         const response = await app.inject({
             method: 'POST',
             url: '/links',
@@ -115,5 +116,37 @@ describe('Fastify Application API', () => {
         })
 
         expect(response.statusCode).toBe(400)
+    })
+
+    test('POST /links with a javascript: url returns 400', async () => {
+        const response = await app.inject({
+            method: 'POST',
+            url: '/links',
+            payload: {url: 'javascript:alert(1)'}
+        })
+
+        expect(response.statusCode).toBe(400)
+    })
+
+    test('POST /links with a ftp url returns 400', async () => {
+        const response = await app.inject({
+            method: 'POST',
+            url: '/links',
+            payload: {url: 'ftp://example.com)'}
+        })
+
+        expect(response.statusCode).toBe(400)
+    })
+    test('POST /links accepts an http url', async () => {
+        const response = await createLink('http://example.com')
+
+
+       expect(response).toHaveProperty('code')
+    })
+
+    test('POST /links accepts an https url', async () => {
+        const response = await createLink('https://example.com')
+
+        expect(response).toHaveProperty('code')
     })
 })
