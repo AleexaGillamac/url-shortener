@@ -1,6 +1,12 @@
 import { fastify } from 'fastify';
+import { error } from 'node:console';
 import { randomBytes } from 'node:crypto';
+import z from 'zod';
 
+const createLinkSchema = z.object({
+    url: z.url()
+})
+ 
 export function buildApp() {
     const app = fastify({ logger: true });
 
@@ -23,19 +29,18 @@ export function buildApp() {
         return { status: 'ok' };
     });
 
-    app.post<{ Body: { url: string } }>('/links', async (request, reply) => {
-        const { url } = request.body ?? {};
+    app.post('/links', async (request, reply) => {
 
-        try {
-            new URL(url);
-        } catch {
-            return reply
-                .status(400)
-                .send({ error: 'A valid url is required.' });
+        const result = createLinkSchema.safeParse(request.body)
+
+        if (!result.success) {
+            return reply.status(400).send({
+                error: 'Invalid URL provided',
+                details: result.error.message,
+            })
         }
-
         const code = generateCode();
-        links.set(code, url);
+        links.set(code, result.data.url);
 
         return reply.status(201).send({
             code,

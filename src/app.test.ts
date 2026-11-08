@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { buildApp } from "./app.js";
-import { error } from "node:console";
+
+
 
 describe('Fastify Application API', () => {
     let app: ReturnType<typeof buildApp>
@@ -15,6 +16,17 @@ describe('Fastify Application API', () => {
         await app.close()
     })
 
+    async function createLink(url: string) {
+        const response = await app.inject({
+            method: 'POST',
+            url: '/links',
+            payload: {url: url}
+        })
+        expect(response.statusCode).toBe(201)
+
+        return response.json()
+    }
+    
     test('Get /health returns a 200 status code', async () => {
         const response = await app.inject({
             method: 'GET',
@@ -26,15 +38,11 @@ describe('Fastify Application API', () => {
     })
 
     test('POST /links with a valid url returns 201 and a code', async () => {
-        const response = await app.inject({
-            method: 'POST',
-            url: '/links',
-            payload: {url: 'https://github.com'}
-        })
+        const originalUrl = 'https://github.com'
+        const response = await createLink(originalUrl)
 
-        const body = response.json()
+        const body = response
         
-        expect(response.statusCode).toBe(201)
         expect(body).toHaveProperty('code')
         expect(typeof body.code).toBe('string')
         expect(body).toHaveProperty('shortUrl')
@@ -53,17 +61,7 @@ describe('Fastify Application API', () => {
     test('GET /:code redirects to the original url', async () => {
         const originalUrl = 'https://github.com'
         
-        const responsePost = await app.inject({
-            method: 'POST',
-            url: '/links',
-            payload: {
-                url: originalUrl
-             },
-        })
-        
-        const body = responsePost.json()
-
-        const code = body.code
+        const { code } = await createLink(originalUrl)
 
         const responseGet = await app.inject({
             method: 'GET',
@@ -89,15 +87,7 @@ describe('Fastify Application API', () => {
 
     test('GET /links/:code/stats counts clicks', async () => {
         const originalUrl = 'https://github.com'
-        const response = await app.inject({
-            method: 'POST',
-            url: '/links',
-            payload: { url: originalUrl}
-        })
-
-        expect(response.statusCode).toBe(201)
-
-        const { code } = response.json()
+        const { code } = await createLink(originalUrl)
 
         for (let i = 1; i <= 3; i++)
             await app.inject({
@@ -115,5 +105,15 @@ describe('Fastify Application API', () => {
         expect(responseStat.statusCode).toBe(200)
         expect(bodyStat.totalClicks).toBe(3)
         expect(bodyStat.clicks).toHaveLength(3)
+    })
+
+   test('POST /links with no url returns 400', async () => {
+        const response = await app.inject({
+            method: 'POST',
+            url: '/links',
+            payload: {}
+        })
+
+        expect(response.statusCode).toBe(400)
     })
 })
